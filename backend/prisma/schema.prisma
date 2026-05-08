@@ -5,31 +5,32 @@
 
 generator client {
   provider = "prisma-client"
+  output   = "../generated/prisma"
 }
 
 datasource db {
   provider = "mysql"
 }
 
-
-
-
-// Modelo de Tarefa
-model Task {
+// Modelo de Jogo Digital
+model DigitalGame {
   id          Int      @id @default(autoincrement())
   title       String
   description String?
-  completed   Boolean  @default(false)
+  releaseDate DateTime?
+  rating      Float?   @default(0)
+  price       Float
+  available   Boolean  @default(true)
   createdAt   DateTime @default(now())
- 
-  // Relacionamento com Categoria
-  categoryId  Int?
-  category    Category? @relation(fields: [categoryId], references: [id])
+
+  // Relacionamento com Gênero
+  genreId     Int?
+  genre       GameGenre? @relation(fields: [genreId], references: [id])
 }
 
-// Modelo de Categoria (Flexibilidade de temas)
-model Category {
+// Modelo de Gênero (Categorização de jogos)
+model GameGenre {
   id    Int    @id @default(autoincrement())
   name  String @unique
-  tasks Task[]
+  games DigitalGame[]
 }
