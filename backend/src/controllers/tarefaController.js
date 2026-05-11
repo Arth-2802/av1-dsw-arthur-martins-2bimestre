@@ -1,143 +1,131 @@
 // ========================================
 // CONTROLLER - CAMADA DE CONTROLE
 // ========================================
-// Esta camada é responsável por:
-// - Receber as requisições HTTP
-// - Validar os dados recebidos
-// - Chamar os métodos do Model
-// - Retornar as respostas adequadas
 
-import * as TarefaModel from "../models/tarefaModel.js";
+import * as JogoModel from "../models/tarefaModel.js";
 
 /**
- * Retorna todas as tarefas em formato JSON
- * @route GET /tarefas
+ * Retorna todos os jogos em formato JSON
+ * @route GET /jogos
  */
-export function listarTarefas(req, res) {
-  const tarefas = TarefaModel.obterTodasTarefas();
-  res.json(tarefas);
+export async function listarJogos(req, res) {
+  try {
+    const jogos = await JogoModel.obterTodosJogos();
+    res.json(jogos);
+  } catch (error) {
+    res.status(500).json({ erro: "Erro ao buscar jogos", detalhes: error.message });
+  }
 }
 
 /**
- * Retorna uma tarefa específica com base no id enviado na URL
- * @route GET /tarefas/:id
+ * Retorna um jogo específico com base no id enviado na URL
+ * @route GET /jogos/:id
  */
-export function obterTarefa(req, res) {
-  // Converte o id recebido pela URL para número
+export async function obterJogo(req, res) {
   const idNumero = Number(req.params.id);
 
-  // Valida se o id é realmente um número
   if (Number.isNaN(idNumero)) {
     return res.status(400).json({ erro: "ID inválido" });
   }
 
-  // Busca a tarefa pelo id no Model
-  const tarefa = TarefaModel.obterTarefaPorId(idNumero);
+  try {
+    const jogo = await JogoModel.obterJogoPorId(idNumero);
 
-  // Se não encontrar, retorna erro 404
-  if (!tarefa) {
-    return res.status(404).json({ erro: "Tarefa não encontrada" });
+    if (!jogo) {
+      return res.status(404).json({ erro: "Jogo não encontrado" });
+    }
+
+    res.json(jogo);
+  } catch (error) {
+    res.status(500).json({ erro: "Erro ao buscar o jogo", detalhes: error.message });
   }
-
-  // Se encontrar, retorna a tarefa
-  res.json(tarefa);
 }
 
 /**
- * Cria uma nova tarefa
- * @route POST /tarefas
+ * Cria um novo jogo
+ * @route POST /jogos
  */
-export function criarTarefa(req, res) {
-  // Pega a descrição enviada no corpo da requisição
-  const { descricao } = req.body;
+export async function criarJogo(req, res) {
+  const { title, description, price, releaseDate, rating, available, genreId } = req.body;
 
-  // Valida se a descrição foi enviada corretamente
-  if (typeof descricao !== "string" || descricao.trim() === "") {
-    return res.status(400).json({ erro: "Descrição é obrigatória" });
+  if (typeof title !== "string" || title.trim() === "") {
+    return res.status(400).json({ erro: "O campo 'title' é obrigatório" });
+  }
+  if (typeof price !== "number") {
+    return res.status(400).json({ erro: "O campo 'price' é obrigatório e deve ser numérico" });
   }
 
-  // Cria a nova tarefa através do Model
-  const tarefaCriada = TarefaModel.criarNovaTarefa(descricao);
+  try {
+    const jogoCriado = await JogoModel.criarJogo({
+      title,
+      description,
+      price,
+      releaseDate,
+      rating,
+      available,
+      genreId
+    });
 
-  // Retorna status 201 (criado com sucesso)
-  res.status(201).json({
-    mensagem: "Tarefa criada com sucesso!",
-    tarefa: tarefaCriada
-  });
+    res.status(201).json({
+      mensagem: "Jogo criado com sucesso!",
+      jogo: jogoCriado
+    });
+  } catch (error) {
+    res.status(500).json({ erro: "Erro ao criar jogo", detalhes: error.message });
+  }
 }
 
 /**
- * Atualiza parcialmente uma tarefa existente
- * @route PATCH /tarefas/:id
+ * Atualiza parcialmente um jogo existente
+ * @route PATCH /jogos/:id
  */
-export function atualizarTarefa(req, res) {
-  // Converte o id da URL para número
+export async function atualizarJogo(req, res) {
   const idNumero = Number(req.params.id);
+  const data = req.body;
 
-  // Pega os dados enviados no corpo da requisição
-  const { descricao, concluida } = req.body;
-
-  // Valida o id
   if (Number.isNaN(idNumero)) {
     return res.status(400).json({ erro: "ID inválido" });
   }
 
-  // Valida a descrição, se ela foi enviada
-  if (
-    descricao !== undefined &&
-    (typeof descricao !== "string" || descricao.trim() === "")
-  ) {
-    return res.status(400).json({ erro: "Descrição inválida" });
+  try {
+    const jogoAtualizado = await JogoModel.atualizarJogo(idNumero, data);
+
+    if (!jogoAtualizado) {
+      return res.status(404).json({ erro: "Jogo não encontrado" });
+    }
+
+    res.json({
+      mensagem: "Jogo atualizado com sucesso!",
+      jogo: jogoAtualizado
+    });
+  } catch (error) {
+    res.status(500).json({ erro: "Erro ao atualizar jogo", detalhes: error.message });
   }
-
-  // Valida o status concluida, se ele foi enviado
-  if (concluida !== undefined && typeof concluida !== "boolean") {
-    return res.status(400).json({ erro: "concluida deve ser boolean" });
-  }
-
-  // Tenta atualizar a tarefa através do Model
-  const tarefaAtualizada = TarefaModel.atualizarTarefa(
-    idNumero,
-    descricao,
-    concluida
-  );
-
-  // Se não encontrar a tarefa, retorna erro 404
-  if (!tarefaAtualizada) {
-    return res.status(404).json({ erro: "Tarefa não encontrada" });
-  }
-
-  // Se atualizar com sucesso, retorna a tarefa atualizada
-  res.json({
-    mensagem: "Tarefa atualizada com sucesso!",
-    tarefa: tarefaAtualizada
-  });
 }
 
 /**
- * Remove uma tarefa pelo id
- * @route DELETE /tarefas/:id
+ * Remove um jogo pelo id
+ * @route DELETE /jogos/:id
  */
-export function excluirTarefa(req, res) {
-  // Converte o id da URL para número
+export async function excluirJogo(req, res) {
   const idNumero = Number(req.params.id);
 
-  // Valida o id
   if (Number.isNaN(idNumero)) {
     return res.status(400).json({ erro: "ID inválido" });
   }
 
-  // Tenta excluir a tarefa através do Model
-  const tarefaRemovida = TarefaModel.excluirTarefa(idNumero);
+  try {
+    const jogoRemovido = await JogoModel.excluirJogo(idNumero);
 
-  // Se não encontrar, retorna erro 404
-  if (!tarefaRemovida) {
-    return res.status(404).json({ erro: "Tarefa não encontrada" });
+    if (!jogoRemovido) {
+      return res.status(404).json({ erro: "Jogo não encontrado" });
+    }
+
+    res.json({
+      mensagem: "Jogo excluído com sucesso!",
+      jogo: jogoRemovido
+    });
+  } catch (error) {
+    res.status(500).json({ erro: "Erro ao excluir jogo", detalhes: error.message });
   }
-
-  // Retorna a tarefa que foi removida
-  res.json({
-    mensagem: "Tarefa excluída com sucesso!",
-    tarefa: tarefaRemovida
-  });
 }

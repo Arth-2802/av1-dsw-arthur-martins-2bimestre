@@ -30,13 +30,13 @@ app.use(express.urlencoded({ extended: true }));
 // Rota inicial apenas para testar se a API está funcionando
 app.get("/", (req, res) => {
   res.json({
-    mensagem: "API de tarefas funcionando!",
+    mensagem: "API de jogos funcionando!",
     versao: "2.0",
     arquitetura: "MVC"
   });
 });
 
-// Registra as rotas de tarefas
+// Registra as rotas de jogos
 app.use(tarefaRoutes);
 
 // ========================================

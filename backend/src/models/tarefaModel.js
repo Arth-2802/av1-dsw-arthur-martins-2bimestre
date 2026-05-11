@@ -1,143 +1,110 @@
 // ========================================
-// MODEL - CAMADA DE DADOS
+// MODEL - CAMADA DE DADOS COM PRISMA
 // ========================================
 // Esta camada é responsável por:
-// - Armazenar os dados (em memória, banco de dados, etc.)
+// - Realizar operações CRUD no banco de dados usando Prisma
 // - Implementar a lógica de negócio
-// - Realizar operações CRUD (Create, Read, Update, Delete)
+
+import { prisma } from "../config/prisma.js";
 
 /**
- * Array que armazena as tarefas temporariamente
- * Observação: esses dados somem quando o servidor reinicia
- * Futuramente, isso será substituído por um banco de dados
+ * Retorna todos os jogos
+ * @returns {Promise<Array>} - Lista de jogos
  */
-const tarefas = [
-  { id: 1, descricao: "Estudar química", concluida: false },
-  { id: 2, descricao: "Criar páginas no Figma", concluida: true }
-];
-
-// ========================================
-// FUNÇÕES AUXILIARES
-// ========================================
+export async function obterTodosJogos() {
+  return await prisma.digitalGame.findMany({
+    include: { genre: true }
+  });
+}
 
 /**
- * Procura o índice de uma tarefa no array com base no id
- * @param {number} id - ID da tarefa a ser encontrada
- * @returns {number} - Índice da tarefa ou -1 se não encontrar
+ * Retorna um jogo específico pelo ID
+ * @param {number} id - ID do jogo
+ * @returns {Promise<Object|null>}
  */
-function encontrarIndiceTarefa(id) {
-  for (let i = 0; i < tarefas.length; i++) {
-    if (tarefas[i].id === id) {
-      return i;
+export async function obterJogoPorId(id) {
+  return await prisma.digitalGame.findUnique({
+    where: { id: id },
+    include: { genre: true }
+  });
+}
+
+/**
+ * Cria um novo jogo usando Prisma
+ * @param {Object} data - Dados do jogo
+ * @param {string} data.title - Título do jogo
+ * @param {string} [data.description] - Descrição do jogo
+ * @param {number} data.price - Preço do jogo
+ * @param {string|Date} [data.releaseDate] - Data de lançamento do jogo
+ * @param {number} [data.rating] - Avaliação do jogo
+ * @param {boolean} [data.available] - Disponibilidade do jogo
+ * @param {number} [data.genreId] - ID do gênero
+ * @returns {Promise<Object>} - O jogo criado
+ */
+export async function criarJogo(data) {
+  const { title, description, price, releaseDate, rating, available, genreId } = data;
+  
+  const novoJogo = await prisma.digitalGame.create({
+    data: {
+      title: title.trim(),
+      description: description ? description.trim() : null,
+      price: price,
+      releaseDate: releaseDate ? new Date(releaseDate) : null,
+      rating: rating || 0,
+      available: available !== undefined ? available : true,
+      genreId: genreId
+    },
+    include: {
+      genre: true
     }
-  }
-  return -1;
+  });
+
+  return novoJogo;
 }
 
 /**
- * Gera um novo id para a próxima tarefa
- * Se o array estiver vazio, começa com 1
- * Caso contrário, pega o maior id existente e soma 1
- * @returns {number} - Novo ID gerado
+ * Atualiza um jogo existente
+ * @param {number} id - ID do jogo
+ * @param {Object} data - Dados para atualizar
+ * @returns {Promise<Object|null>} - Jogo atualizado ou null
  */
-function gerarNovoId() {
-  if (tarefas.length === 0) return 1;
-
-  let maiorId = 0;
-  for (let i = 0; i < tarefas.length; i++) {
-    if (tarefas[i].id > maiorId) {
-      maiorId = tarefas[i].id;
+export async function atualizarJogo(id, data) {
+  try {
+    const jogoAtualizado = await prisma.digitalGame.update({
+      where: { id: id },
+      data: data,
+      include: { genre: true }
+    });
+    return jogoAtualizado;
+  } catch (error) {
+    if (error.code === "P2025") {
+      return null;
     }
+    throw error;
   }
-
-  return maiorId + 1;
-}
-
-// ========================================
-// OPERAÇÕES CRUD
-// ========================================
-
-/**
- * Retorna todas as tarefas cadastradas
- * @returns {Array} - Array com todas as tarefas
- */
-export function obterTodasTarefas() {
-  return tarefas;
 }
 
 /**
- * Procura uma tarefa específica pelo id
- * @param {number} id - ID da tarefa a ser buscada
- * @returns {Object|null} - A tarefa encontrada ou null
+ * Exclui um jogo pelo id usando Prisma
+ * @param {number} id - ID do jogo a ser excluído
+ * @returns {Promise<Object|null>} - O jogo removido ou null se não encontrar
  */
-export function obterTarefaPorId(id) {
-  const indice = encontrarIndiceTarefa(id);
+export async function excluirJogo(id) {
+  try {
+    const jogoRemovido = await prisma.digitalGame.delete({
+      where: {
+        id: id
+      },
+      include: {
+        genre: true
+      }
+    });
 
-  if (indice === -1) return null;
-
-  return tarefas[indice];
-}
-
-/**
- * Cria uma nova tarefa
- * A descrição é limpa com trim() para remover espaços extras
- * Toda nova tarefa começa com concluida = false
- * @param {string} descricao - Descrição da nova tarefa
- * @returns {Object} - A tarefa criada
- */
-export function criarNovaTarefa(descricao) {
-  const novaTarefa = {
-    id: gerarNovoId(),
-    descricao: descricao.trim(),
-    concluida: false
-  };
-
-  tarefas.push(novaTarefa);
-  return novaTarefa;
-}
-
-/**
- * Atualiza uma tarefa existente
- * Pode atualizar a descrição e/ou o status de conclusão
- * @param {number} id - ID da tarefa a ser atualizada
- * @param {string} novaDescricao - Nova descrição (opcional)
- * @param {boolean} novoStatus - Novo status de conclusão (opcional)
- * @returns {Object|null} - A tarefa atualizada ou null se não encontrar
- */
-export function atualizarTarefa(id, novaDescricao, novoStatus) {
-  const indice = encontrarIndiceTarefa(id);
-
-  if (indice === -1) return null;
-
-  const tarefa = tarefas[indice];
-
-  // Atualiza a descrição apenas se ela foi enviada
-  if (novaDescricao !== undefined) {
-    tarefa.descricao = novaDescricao.trim();
+    return jogoRemovido;
+  } catch (error) {
+    if (error.code === "P2025") {
+      return null;
+    }
+    throw error;
   }
-
-  // Atualiza o status apenas se ele foi enviado
-  if (novoStatus !== undefined) {
-    tarefa.concluida = novoStatus;
-  }
-
-  return tarefa;
-}
-
-/**
- * Exclui uma tarefa pelo id
- * @param {number} id - ID da tarefa a ser excluída
- * @returns {Object|null} - A tarefa removida ou null se não encontrar
- */
-export function excluirTarefa(id) {
-  const indice = encontrarIndiceTarefa(id);
-
-  if (indice === -1) return null;
-
-  const tarefaRemovida = tarefas[indice];
-
-  // Remove 1 elemento do array na posição encontrada
-  tarefas.splice(indice, 1);
-
-  return tarefaRemovida;
 }

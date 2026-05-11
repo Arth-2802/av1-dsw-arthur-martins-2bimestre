@@ -1,45 +1,39 @@
 // ========================================
 // ROUTES - CAMADA DE ROTAS
 // ========================================
-// Esta camada é responsável por:
-// - Definir as rotas da aplicação
-// - Mapear URLs para os controllers correspondentes
-// - Organizar as rotas por recurso/entidade
 
 import express from "express";
-import * as TarefaController from "../controllers/tarefaController.js";
+import * as JogoController from "../controllers/tarefaController.js";
 
-// Cria um roteador do Express
 const router = express.Router();
 
 // ========================================
-// DEFINIÇÃO DAS ROTAS DE TAREFAS
+// DEFINIÇÃO DAS ROTAS DE JOGOS
 // ========================================
 
 /**
- * GET /tarefas - Lista todas as tarefas
+ * GET /jogos - Lista todos os jogos
  */
-router.get("/tarefas", TarefaController.listarTarefas);
+router.get("/jogos", JogoController.listarJogos);
 
 /**
- * GET /tarefas/:id - Obtém uma tarefa específica
+ * GET /jogos/:id - Obtém um jogo específico
  */
-router.get("/tarefas/:id", TarefaController.obterTarefa);
+router.get("/jogos/:id", JogoController.obterJogo);
 
 /**
- * POST /tarefas - Cria uma nova tarefa
+ * POST /jogos - Cria um novo jogo
  */
-router.post("/tarefas", TarefaController.criarTarefa);
+router.post("/jogos", JogoController.criarJogo);
 
 /**
- * PATCH /tarefas/:id - Atualiza uma tarefa parcialmente
+ * PUT /jogos/:id - Atualiza um jogo
  */
-router.patch("/tarefas/:id", TarefaController.atualizarTarefa);
+router.put("/jogos/:id", JogoController.atualizarJogo);
 
 /**
- * DELETE /tarefas/:id - Remove uma tarefa
+ * DELETE /jogos/:id - Remove um jogo
  */
-router.delete("/tarefas/:id", TarefaController.excluirTarefa);
+router.delete("/jogos/:id", JogoController.excluirJogo);
 
-// Exporta o roteador para ser usado no app principal
 export default router;
